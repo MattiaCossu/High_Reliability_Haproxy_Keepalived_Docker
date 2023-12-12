@@ -79,8 +79,109 @@ networks:
     driver: bridge
 
 ```
-Possiamo osservare che all'interno della sezione __"services"__ vengono istaziati quattro servizi i primi due sono i __"web_server"__ (Nginx), prendono il loro codice dal loro relativo dockerfile,   
+Possiamo osservare che all'interno della sezione __"services"__ vengono istaziati quattro servizi i primi due sono i __"web_server"__ (Nginx), prendono il loro codice dal loro relativo dockerfile che a sua volta punta al file __"nginx.conf"__
 
+_File Docker:_
+```yaml
+FROM nginx:stable-alpine
+COPY nginx.conf /etc/nginx/nginx.conf
+```
+_File nginx.conf_
+```
+worker_processes auto;
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream backend {
+        server web_server1:80;
+        server web_server2:80;
+    }
+
+    server {
+        listen 80;
+
+        location / {
+            proxy_pass http://backend;
+        }
+    }
+}
+```
+_Lo stesso discorso è applicato ai due __"HAPROXY"__ ma in più abbiamo anche i file di __"keepalived_master.conf"__ e __"keepalived_backup.conf"__:_
+
+_File docker:_
+```yaml
+FROM haproxy:lts-bullseye
+COPY haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg
+```
+_File haproxy.cfg:_
+```
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    maxconn 4096
+
+defaults
+    log global
+    mode http
+    option httplog
+    option dontlognull
+    timeout connect 5000
+    timeout client 50000
+    timeout server 50000
+
+frontend http_front
+    bind *:80
+    mode http
+    default_backend http_back
+```
+_File keepalived_master.conf:_
+```
+vrrp_script chk_haproxy {
+    script "pidof haproxy"
+    interval 2
+}
+
+vrrp_instance VI_1 {
+    state MASTER
+    interface eth0
+    virtual_router_id 51
+    priority 101
+    advert_int 1
+    virtual_ipaddress {
+        172.21.240.150
+    }
+    track_script {
+        chk_haproxy
+    }
+}
+```
+_keepalived_backup.conf:_
+```
+vrrp_script chk_haproxy {
+    script "pidof haproxy"
+    interval 2
+}
+
+vrrp_instance VI_1 {
+    state BACKUP
+    interface eth0
+    virtual_router_id 51
+    priority 100
+    advert_int 1
+    virtual_ipaddress {
+        172.21.240.150
+    }
+    track_script {
+        chk_haproxy
+    }
+}
+```
+
+_Domande:_
+
+![domande](./pic/domande.png)
 
 Risposta 1:
 
