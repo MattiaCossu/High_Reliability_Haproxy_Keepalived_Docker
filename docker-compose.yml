@@ -1,0 +1,78 @@
+version: "3.7"
+
+services:
+  runner:
+    image: "runner:local"
+    tty: true
+    stdin_open: true
+
+    build:
+      context: .
+    networks:
+      - ha-stack
+
+  keepalived-a:
+    <<: *keepalived
+    network_mode: host
+    volumes:
+      - "./keepalived/proxy-a/keepalived.conf:/usr/local/etc/keepalived/keepalived.conf:ro"
+      - "./keepalived/notify.sh:/container/service/keepalived/assets/notify.custom.sh:ro"
+
+  keepalived-b:
+    <<: *keepalived
+    network_mode: host
+    volumes:
+      - "./keepalived/proxy-b/keepalived.conf:/usr/local/etc/keepalived/keepalived.conf:ro"
+      - "./keepalived/notify.sh:/container/service/keepalived/assets/notify.custom.sh:ro"
+
+  haproxy-a:
+    <<: *haproxy
+    networks:
+      ha-stack:
+        ipv4_address: 172.50.0.50
+        aliases:
+          - haproxy-a.ha.stack
+
+  haproxy-b:
+    <<: *haproxy
+    networks:
+      ha-stack:
+        ipv4_address: 172.50.0.60
+        aliases:
+          - haproxy-b.ha.stack
+
+  web-b:
+    image: "nginx:stable-alpine"
+    networks:
+      ha-stack:
+        aliases:
+          - web-b.ha.stack
+    volumes:
+      - "./web/server-b/index.html:/usr/share/nginx/html/index.html:ro"
+
+  web-a:
+    image: "nginx:stable-alpine"
+    networks:
+      ha-stack:
+        aliases:
+          - web-a.ha.stack
+    volumes:
+      - "./web/server-a/index.html:/usr/share/nginx/html/index.html:ro"
+
+x-haproxy-defaults: &haproxy
+  image: "haproxy:2.0-alpine"
+  volumes:
+      - "./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro"
+
+x-keepalived-defaults: &keepalived
+  image: "osixia/keepalived:2.0.19"
+  cap_add:
+    - NET_ADMIN
+    - NET_BROADCAST
+    - NET_RAW
+
+networks:
+  ha-stack:
+    ipam:
+      config:
+        - subnet: 172.50.0.0/16
