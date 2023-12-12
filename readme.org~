@@ -1,0 +1,6 @@
+#+TITLE:Load Balancing and Failover Project with Docker Compose
+#+AUTHOR: MattiaCossu
+
+* Load Balancing and Failover Project with Docker Compose
+
+This project showcases a load balancing and failover implementation using Docker Compose, Keepalived, and HAProxy.

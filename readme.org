@@ -1,0 +1,88 @@
+#+TITLE:Load Balancing and Failover Project with Docker Compose
+#+AUTHOR: MattiaCossu
+
+* Load Balancing and Failover Project with Docker Compose
+
+This project showcases a load balancing and failover implementation using ~Docker Compose~, ~Keepalived~, and ~HAProxy~.
+
+** Description
+The purpose of the project is to realize the following network:
+[[./pics/topologia.png]]
+
+The project comprises several Docker containerized services:
+
+- ~keepalived-a~ and ~keepalived-b~: Two Keepalived instances configured for virtual IP failover.
+- ~haproxy-a~ and ~haproxy-b~: Two HAProxy instances configured for load balancing across web servers.
+- _web-a_ and _web-b_: Two Nginx (in this case, feel free to put any web serevr) web servers configured to host static content.
+
+** Project Structure
+
+The ~docker-compose.yml~ file defines the Docker service configuration and associated networks. The main services include:
+
+- ~Keepalived~: Two instances set up to monitor server states and manage the virtual IP for failover.
+- ~HAProxy~: Two instances configured to balance traffic load across web servers.
+- ~Web Servers~: Two Nginx instances configured to host static content.
+
+Following is the project tree:
+#+BEGIN_SRC bash
+.
+├── docker-compose.yml
+├── Dockerfile
+├── haproxy
+│   └── haproxy.cfg
+├── keepalived
+│   ├── notify.sh
+│   ├── proxy-a
+│   └── proxy-b
+└── web
+    ├── server-a
+    └── server-b
+#+END_SRC
+
+** Technologies Used
+*** Docker Compose
+Docker Compose is utilized for defining and running multi-container Docker applications. It simplifies the process of managing multiple interconnected containers.
+*** Keepalived
+Keepalived is used for high availability by providing failover capability with the virtual IP. It ensures continuous service availability by shifting traffic in case of a server failure.
+*** HAProxy
+HAProxy is employed as the load balancer to distribute incoming traffic across multiple web servers. It helps in optimizing resource usage and ensuring high performance by efficiently routing requests.
+*** Nginx
+Nginx serves as the web server to host static content in this setup. It's known for its high performance, stability, and low resource consumption.
+
+** Implementation Choices
+*** Failover Strategy
+Keepalived was chosen due to its simplicity and robustness in managing failover scenarios. It ensures continuous service availability by monitoring server states and diverting traffic when necessary.
+*** Load Balancing
+HAProxy was selected for load balancing because of its efficiency in evenly distributing incoming traffic across multiple servers. This aids in preventing overloading of individual servers and ensures better resource utilization.
+*** Containerization
+Docker was chosen to containerize services for portability, scalability, and ease of deployment. It encapsulates each service, ensuring consistency across different environments.
+
+** Usage
+*** Environment
+For testing purposes and to comply with the configurations without making changes we recommend creating a VM (with hypervisor like VMWare or VirtualBox) in NAT with network 192.168.150.*
+*** Project Setup
+To start the project, execute the following command in the project's root directory:
+#+BEGIN_SRC bash
+  docker-compose up -d
+#+END_SRC
+This command initiates all services defined in the docker-compose.yml file in the background.
+*** Testing Failover and Load Balancing
+Access the web servers via the configured virtual IP address (e.g., 192.168.195.150:80).
+#+BEGIN_SRC bash
+  ┌──(kali㉿kali)-[~/App/TestCLE]
+  └─$ curl http://192.168.195.150
+  Server A
+                                                                                               
+  ┌──(kali㉿kali)-[~/App/TestCLE]
+  └─$ curl http://192.168.195.150
+  Server B
+#+END_SRC
+
+Test the system's resilience by simulating the loss of a web server or HAProxy instances stopping them.
+** Customization
+Tailor the project by adjusting configurations specific to each service in their respective configuration files.
+
+_A thank you to the creators of this project_:
+- [[https://github.com/Disturbante][@Disturbante]]
+- [[https://github.com/AleHelp][@AleHelp]]
+- [[https://github.com/MattiaCossu][@MattiaCossu]]

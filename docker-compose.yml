@@ -1,16 +1,44 @@
 version: "3.7"
 
+# x-* for limiting the amount of code duplication
+x-haproxy-defaults: &haproxy
+  image: "haproxy:2.0-alpine"
+  user: "haproxy"
+  volumes:
+      - "./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro"
+  healthcheck:
+      test: ["CMD-SHELL", "haproxy -c -f /usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+x-keepalived-defaults: &keepalived
+  image: "osixia/keepalived:2.0.19"
+  cap_add:
+    - NET_ADMIN
+    - NET_BROADCAST
+    - NET_RAW
+  healthcheck:
+      test: ["CMD-SHELL", "pidof keepalived"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+x-nginx-defaults: &nginx
+  image: "nginx:stable-alpine"
+  healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  ha-stack:
+    ipam:
+      config:
+        - subnet: 172.50.0.0/16
+
 services:
-  runner:
-    image: "runner:local"
-    tty: true
-    stdin_open: true
-
-    build:
-      context: .
-    networks:
-      - ha-stack
-
   keepalived-a:
     <<: *keepalived
     network_mode: host
@@ -42,37 +70,20 @@ services:
           - haproxy-b.ha.stack
 
   web-b:
-    image: "nginx:stable-alpine"
+    <<: *nginx
     networks:
       ha-stack:
         aliases:
           - web-b.ha.stack
     volumes:
       - "./web/server-b/index.html:/usr/share/nginx/html/index.html:ro"
+    
 
   web-a:
-    image: "nginx:stable-alpine"
+    <<: *nginx
     networks:
       ha-stack:
         aliases:
           - web-a.ha.stack
     volumes:
       - "./web/server-a/index.html:/usr/share/nginx/html/index.html:ro"
-
-x-haproxy-defaults: &haproxy
-  image: "haproxy:2.0-alpine"
-  volumes:
-      - "./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro"
-
-x-keepalived-defaults: &keepalived
-  image: "osixia/keepalived:2.0.19"
-  cap_add:
-    - NET_ADMIN
-    - NET_BROADCAST
-    - NET_RAW
-
-networks:
-  ha-stack:
-    ipam:
-      config:
-        - subnet: 172.50.0.0/16
