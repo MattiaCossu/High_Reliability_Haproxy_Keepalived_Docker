@@ -28,7 +28,7 @@ services:
     cap_add:
       - NET_ADMIN
     volumes:
-      - ./haproxy/keepalived.conf:/etc/keepalived/keepalived.conf
+      - ./haproxy/keepalived.conf:/etc/keepalived/keepalived_master.conf
     depends_on:
       - web_server1
       - web_server2
@@ -44,7 +44,7 @@ services:
     cap_add:
       - NET_ADMIN
     volumes:
-      - ./haproxy/keepalived.conf:/etc/keepalived/keepalived.conf
+      - ./haproxy/keepalived.conf:/etc/keepalived/keepalived_backup.conf
     depends_on:
       - web_server1
       - web_server2
